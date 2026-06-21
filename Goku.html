@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goku's Vibrant Portfolio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Poppins:wght@300;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(to bottom right, #141E30, #243B55);
+            color: white;
+            overflow-x: hidden;
+            /* Removed scroll-behavior here, will use JS for smooth scroll */
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 250px;
+            background: #ffa500;
+            ;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 2rem;
+            z-index: 1000;
+            opacity:0.75;
+        }
+
+        .profile {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .profile img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 3px solid #00E7FF;
+            transition: transform 0.4s ease;
+        }
+
+        .profile img:hover {
+            transform: scale(1.1);
+        }
+
+        .profile h1 {
+            font-size: 1rem;
+            margin: 0.5rem 0;
+            color: #00E7FF;
+            cursor: pointer;
+        }
+
+        .nav-menu {
+            margin-top: 2rem;
+            list-style: none;
+            padding: 0;
+            width: 100%;
+        }
+
+        .nav-menu li {
+            text-align: left;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid #1a1a2e;
+            transition: background 0.3s;
+        }
+
+        .nav-menu li:hover,
+        .nav-menu li.active {
+            background: #16213e;
+        }
+
+        .nav-menu li a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .content {
+            margin-left: 250px;
+            padding: 0;
+        }
+
+        section {
+            padding: 5rem 2rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        #home {
+    background: linear-gradient(to right, rgba(255, 255, 255, 1), rgba(255, 255, 255, 1));
+}
+
+
+        #about, #resume, #skills, #services, #contact {
+            background:  #FFFFFF;
+        }
+
+        h2 {
+            font-size: 3rem;
+            color: #FFD700;
+        }
+
+        p {
+            font-size: 1.2rem;
+            margin-top: 1rem;
+            color: #00E7FF;
+        }
+
+        .scroll-wheel {
+            position: fixed;
+            width: 223px;
+            height: 222px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: transform 0.4s ease-in-out, opacity 0.4s ease-in-out;
+            transform: scale(0);
+            z-index: 2000;
+        }
+
+        .scroll-wheel.active {
+            pointer-events: all;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .wheel-item {
+            position: absolute;
+            color: #FFD700;
+            font-size: 0.8rem;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s, color 0.3s;
+        }
+
+        .wheel-item img {
+            width: 40px;
+            height: 40px;
+            transition: transform 0.3s ease;
+        }
+
+        .wheel-item:hover img {
+            transform: scale(1.2);
+        }
+
+        .wheel-item:hover {
+            color: #00E7FF;
+        }
+
+        .wheel-item[data-section="linkedin"] {
+            top: 20%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .wheel-item[data-section="github"] {
+            top: 50%;
+            right: 20%;
+            transform: translate(50%, -50%);
+        }
+
+        .wheel-item[data-section="telegram"] {
+            bottom: 20%;
+            left: 50%;
+            transform: translate(-50%, 50%);
+        }
+
+        .wheel-item[data-section="whatsapp"] {
+            top: 50%;
+            left: 20%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Party Shower Animation */
+        .party-shower {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            display: none;
+            z-index: 999;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: confettiFall 1.5s infinite;
+        }
+
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(-10px) rotate(0);
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+            }
+        }
+
+        .secret-message {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #FFD700;
+            padding: 10px 15px;
+            font-size: 1.2rem;
+            color: white;
+            border-radius: 5px;
+            display: none;
+            z-index: 1001;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .secret-message:hover {
+            background: #32CD32; /* Green hover effect */
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            background: #0F3460;
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="profile">
+            <img id="gokuCircle" src="https://images.pexels.com/photos/4498792/pexels-photo-4498792.jpeg" alt="Goku">
+            <h1 id="gokuName">Goku</h1>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#resume">Resume</a></li>
+            <li><a href="#skills">Skills</a></li>
+            <li><a href="#services">Services</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+    </div>
+
+    <!-- Scroll Wheel -->
+    <div class="scroll-wheel" id="scrollWheel">
+        <div class="wheel-item" data-section="linkedin">
+            <a href="https://www.linkedin.com/" target="_blank">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/f/f8/LinkedIn_icon_circle.svg" alt="LinkedIn">
+            </a>
+        </div>
+        <div class="wheel-item" data-section="github">
+            <a href="https://github.com/" target="_blank">
+                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMwG2cWz5ys7RSXNFw4RQg2YQC3CayJBOATg&s" alt="GitHub">
+            </a>
+        </div>
+        <div class="wheel-item" data-section="telegram">
+            <a href="https://t.me/" target="_blank">
+                <img src="https://static.vecteezy.com/system/resources/previews/020/964/381/non_2x/telegram-circle-icon-for-web-design-free-png.png" alt="Telegram">
+            </a>
+        </div>
+        <div class="wheel-item" data-section="whatsapp">
+            <a href="https://wa.me/" target="_blank">
+                <img src="https://cdn2.iconfinder.com/data/icons/social-messaging-ui-color-shapes-2-free/128/social-whatsapp-circle-512.png" alt="WhatsApp">
+            </a>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+        <section id="home">
+            <h2>Welcome to Goku's Portfolio</h2>
+            <p>Web Developer | Designer | Creator</p>
+        </section>
+        <section id="about">
+            <h2>About Me</h2>
+            <p>Here's a little information about who I am.</p>
+        </section>
+        <section id="resume">
+            <h2>Resume</h2>
+            <p>Explore my professional background and achievements.</p>
+        </section>
+        <section id="skills">
+            <h2>Skills</h2>
+            <p>Here are some of the skills I excel at.</p>
+        </section>
+        <section id="services">
+            <h2>Services</h2>
+            <p>Discover the services I provide to help your business grow.</p>
+        </section>
+        <section id="contact">
+            <h2>Contact</h2>
+            <p>Get in touch with me for collaborations or inquiries.</p>
+        </section>
+    </div>
+
+    <!-- Party Shower -->
+    <div id="partyShower" class="party-shower"></div>
+
+    <!-- Secret Message -->
+    <div id="secretMessage" class="secret-message">👏 Hidden Easter egg unlocked</div>
+
+    <footer>
+        &copy; 2024 Goku. All Rights Reserved.
+    </footer>
+
+    <script>
+        const gokuCircle = document.getElementById('gokuCircle');
+        const gokuName = document.getElementById('gokuName');
+        const partyShower = document.getElementById('partyShower');
+        const secretMessage = document.getElementById('secretMessage');
+        const navLinks = document.querySelectorAll('.nav-menu a');
+
+        // Smooth scroll on navigation link click
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetSection = document.getElementById(targetId);
+                targetSection.scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Trigger party and secret message on Goku profile click
+        gokuName.addEventListener('click', () => {
+            partyShower.style.display = 'block';
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.top = Math.random() * 100 + 'vh';
+                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                partyShower.appendChild(confetti);
+            }
+
+            secretMessage.style.display = 'block';
+            setTimeout(() => {
+                partyShower.innerHTML = '';
+                partyShower.style.display = 'none';
+                secretMessage.style.display = 'none';
+            }, 3000);
+        });
+
+        // Toggle scroll wheel visibility on circle click
+        gokuCircle.addEventListener('click', () => {
+            if (scrollWheel.classList.contains('active')) {
+                scrollWheel.classList.remove('active');
+            } else {
+                scrollWheel.classList.add('active');
+            }
+        });
+
+        // Close scroll wheel when clicking outside
+        document.addEventListener('click', (event) => {
+            if (!scrollWheel.contains(event.target) && event.target !== gokuCircle) {
+                scrollWheel.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
