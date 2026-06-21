@@ -6925,8 +6925,6 @@ body.dark-mode .resume-gate-actions .resume-btn.secondary:hover {
         if (statusEl) { statusEl.textContent = 'Sending…'; statusEl.className = 'form-status'; }
 
         const onGitHubPages = window.location.hostname === 'gokul7707.github.io';
-        const apiBase = onGitHubPages ? '' : '';
-        const contactUrl = apiBase ? `${apiBase}/api/contact` : '/api/contact';
 
         if (onGitHubPages) {
           const subject = encodeURIComponent(`Portfolio message from ${name}`);
@@ -6942,26 +6940,28 @@ body.dark-mode .resume-gate-actions .resume-btn.secondary:hover {
         }
 
         try {
-          const res = await fetch(contactUrl, {
+          const res = await fetch('/api/contact', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email, message }),
           });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            throw new Error(data.message || data.detail?.[0]?.msg || data.detail || 'Could not send message');
+          const raw = await res.text();
+          let data = {};
+          try {
+            data = raw ? JSON.parse(raw) : {};
+          } catch {
+            throw new Error(res.ok ? 'Unexpected server response.' : `Server error (${res.status}). The contact API may not be deployed yet.`);
+          }
+          if (!res.ok || data.success === false) {
+            throw new Error(data.message || `Could not send message (${res.status}).`);
           }
           form.reset();
-          let statusText = data.message || 'Thanks! I will get back to you soon.';
-          if (data.emailed === false) {
-            statusText += ' (Saved locally. Email not sent yet.)';
-            if (data.email_note) console.warn('SMTP:', data.email_note);
-          }
+          const statusText = data.message || 'Thanks! I will get back to you soon.';
           if (statusEl) {
             statusEl.textContent = statusText;
-            statusEl.className = data.emailed === false ? 'form-status error' : 'form-status success';
+            statusEl.className = 'form-status success';
           }
-          showToast(data.emailed === false ? 'Saved. Check SMTP / spam' : 'Message sent. Thank you!', data.emailed !== false);
+          showToast('Message sent. Thank you!', true);
         } catch (err) {
           const msg = err.message || 'Something went wrong. Try email instead.';
           if (statusEl) { statusEl.textContent = msg; statusEl.className = 'form-status error'; }

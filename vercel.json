@@ -1,19 +1,18 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "experimentalServices": {
-    "frontend": {
-      "entrypoint": ".",
-      "framework": "vite",
-      "routePrefix": "/"
-    },
-    "backend": {
-      "entrypoint": "backend",
-      "framework": "fastapi",
-      "routePrefix": "/server"
+  "buildCommand": "pnpm run build",
+  "installCommand": "pnpm install",
+  "outputDirectory": "dist",
+  "framework": null,
+  "functions": {
+    "api/**/*.js": {
+      "memory": 1024,
+      "maxDuration": 15
     }
   },
   "rewrites": [
-    { "source": "/", "destination": "/hello.html" }
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/((?!api/|assets/|resume/|hello\\.html|index\\.html).*)", "destination": "/hello.html" }
   ],
   "headers": [
     {

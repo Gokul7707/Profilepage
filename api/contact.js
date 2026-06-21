@@ -14,7 +14,42 @@ function validatePayload(body) {
   return { name, email, message };
 }
 
+async function readJsonBody(req) {
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+    return req.body;
+  }
+
+  if (typeof req.body === 'string' && req.body.trim()) {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return {};
+    }
+  }
+
+  return new Promise((resolve, reject) => {
+    let raw = '';
+    req.on('data', (chunk) => {
+      raw += chunk;
+    });
+    req.on('end', () => {
+      if (!raw.trim()) {
+        resolve({});
+        return;
+      }
+      try {
+        resolve(JSON.parse(raw));
+      } catch {
+        resolve({});
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
 module.exports = async (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -25,7 +60,14 @@ module.exports = async (req, res) => {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
-  const parsed = validatePayload(req.body);
+  let body;
+  try {
+    body = await readJsonBody(req);
+  } catch {
+    return res.status(400).json({ success: false, message: 'Invalid request body.' });
+  }
+
+  const parsed = validatePayload(body);
   if (parsed.error) {
     return res.status(400).json({ success: false, message: parsed.error });
   }
@@ -38,11 +80,11 @@ module.exports = async (req, res) => {
   const smtpPort = Number(process.env.SMTP_PORT || 587);
 
   if (!smtpHost || !smtpUser || !smtpPass || !contactEmail) {
-    return res.status(200).json({
-      success: true,
-      message: 'Thanks! Your message was received.',
+    return res.status(503).json({
+      success: false,
+      message: 'Email service is not configured yet. Please try again later or email gokulsrinivasan2020@gmail.com directly.',
       emailed: false,
-      email_note: 'SMTP not configured in Vercel environment variables',
+      email_note: 'Add SMTP_USER and SMTP_PASSWORD in Vercel environment variables.',
     });
   }
 
@@ -57,6 +99,7 @@ module.exports = async (req, res) => {
     await transporter.sendMail({
       from: smtpUser,
       to: contactEmail,
+      replyTo: email,
       subject: `Portfolio message from ${name}`,
       text: `New message from your portfolio\n\nName: ${name}\nEmail: ${email}\nTime: ${new Date().toISOString()}\n\nMessage:\n${message}\n`,
     });
@@ -69,7 +112,8 @@ module.exports = async (req, res) => {
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: err.message || 'Email send failed',
+      message: err.message || 'Email send failed. Try again or email gokulsrinivasan2020@gmail.com directly.',
+      emailed: false,
     });
   }
 };
