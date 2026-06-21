@@ -9,7 +9,7 @@
     "dev:api": "python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000",
     "start": "node scripts/dev.mjs",
     "preview": "vite preview --host --port 8080",
-    "build": "echo Portfolio is static — no build step required"
+    "build": "node scripts/vercel-build.mjs"
   },
   "dependencies": {
     "nodemailer": "^6.10.1"

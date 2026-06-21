@@ -1,9 +1,17 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "installCommand": "pnpm install",
-  "buildCommand": "",
-  "outputDirectory": ".",
+  "experimentalServices": {
+    "frontend": {
+      "entrypoint": ".",
+      "framework": "vite",
+      "routePrefix": "/"
+    },
+    "backend": {
+      "entrypoint": "backend",
+      "framework": "fastapi",
+      "routePrefix": "/server"
+    }
+  },
   "rewrites": [
     { "source": "/", "destination": "/hello.html" }
   ],
