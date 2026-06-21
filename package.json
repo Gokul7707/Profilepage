@@ -8,7 +8,11 @@
     "dev:web": "vite --host --port 8080 --strictPort",
     "dev:api": "python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000",
     "start": "node scripts/dev.mjs",
-    "preview": "vite preview --host --port 8080"
+    "preview": "vite preview --host --port 8080",
+    "build": "echo Portfolio is static — no build step required"
+  },
+  "dependencies": {
+    "nodemailer": "^6.10.1"
   },
   "devDependencies": {
     "qrcode-terminal": "^0.12.0",

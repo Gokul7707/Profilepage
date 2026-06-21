@@ -6944,7 +6944,7 @@ body.dark-mode .resume-gate-actions .resume-btn.secondary:hover {
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) {
-            throw new Error(data.detail?.[0]?.msg || data.detail || 'Could not send message');
+            throw new Error(data.message || data.detail?.[0]?.msg || data.detail || 'Could not send message');
           }
           form.reset();
           let statusText = data.message || 'Thanks! I will get back to you soon.';
