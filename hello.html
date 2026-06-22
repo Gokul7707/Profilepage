@@ -6887,14 +6887,18 @@ body.dark-mode .resume-gate-actions .resume-btn.secondary:hover {
       });
     })();
 
-    // Contact form → FormSubmit (live sites) or local /api/contact
+    // Contact form → Web3Forms on live sites, local /api/contact in dev
     (function initContactForm() {
       const form = document.getElementById('contactForm');
       const statusEl = document.getElementById('formStatus');
       const submitBtn = document.getElementById('contactSubmit');
       const toast = document.getElementById('contactToast');
       const CONTACT_INBOX = 'gokulsrinivasan2020@gmail.com';
+      const WEB3FORMS_ACCESS_KEY = '120a3271-7ed1-4627-a41b-c71a66fcb011';
+      const FORMSUBMIT_TOKEN = '__FORMSUBMIT_TOKEN__';
       const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const hasWeb3FormsKey = WEB3FORMS_ACCESS_KEY && !WEB3FORMS_ACCESS_KEY.includes('WEB3FORMS_ACCESS_KEY');
+      const hasFormSubmitToken = FORMSUBMIT_TOKEN && !FORMSUBMIT_TOKEN.includes('FORMSUBMIT_TOKEN');
       if (!form) return;
 
       function showToast(text, ok) {
@@ -6904,12 +6908,29 @@ body.dark-mode .resume-gate-actions .resume-btn.secondary:hover {
         setTimeout(() => toast.classList.remove('show'), 4200);
       }
 
-      function formSubmitSucceeded(data) {
-        return data && (data.success === true || data.success === 'true');
+      async function sendViaWeb3Forms({ name, email, message }) {
+        const res = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            access_key: WEB3FORMS_ACCESS_KEY,
+            name,
+            email,
+            replyto: email,
+            subject: `Portfolio message from ${name}`,
+            message,
+            botcheck: false,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.success !== true) {
+          throw new Error(data.message || 'Could not send message.');
+        }
+        return { success: true, message: 'Thanks! Your message was received.' };
       }
 
-      async function sendViaFormSubmit({ name, email, message }) {
-        const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(CONTACT_INBOX)}`, {
+      async function sendViaFormSubmit({ name, email, message }, endpoint) {
+        const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(endpoint)}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -6926,10 +6947,11 @@ body.dark-mode .resume-gate-actions .resume-btn.secondary:hover {
           }),
         });
         const data = await res.json().catch(() => ({}));
-        if (!formSubmitSucceeded(data)) {
+        const ok = data.success === true || data.success === 'true';
+        if (!ok) {
           const note = data.message || 'Could not send message.';
           if (/activation/i.test(note)) {
-            throw new Error('The inbox still needs a one-time FormSubmit activation link. Check ' + CONTACT_INBOX + ' and click Activate Form, then try again.');
+            throw new Error('FormSubmit is not activated yet. Use Web3Forms instead (see README) or click Activate Form in your inbox.');
           }
           throw new Error(note);
         }
@@ -6955,6 +6977,19 @@ body.dark-mode .resume-gate-actions .resume-btn.secondary:hover {
         return data;
       }
 
+      async function sendContactMessage(payload) {
+        if (isLocalDev) {
+          return sendViaLocalApi(payload);
+        }
+        if (hasWeb3FormsKey) {
+          return sendViaWeb3Forms(payload);
+        }
+        if (hasFormSubmitToken) {
+          return sendViaFormSubmit(payload, FORMSUBMIT_TOKEN);
+        }
+        return sendViaFormSubmit(payload, CONTACT_INBOX);
+      }
+
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = form.name?.value?.trim() || document.getElementById('contactName')?.value?.trim();
@@ -6978,9 +7013,7 @@ body.dark-mode .resume-gate-actions .resume-btn.secondary:hover {
         if (statusEl) { statusEl.textContent = 'Sending…'; statusEl.className = 'form-status'; }
 
         try {
-          const data = isLocalDev
-            ? await sendViaLocalApi({ name, email, message })
-            : await sendViaFormSubmit({ name, email, message });
+          const data = await sendContactMessage({ name, email, message });
           form.reset();
           const statusText = data.message || 'Thanks! I will get back to you soon.';
           if (statusEl) {
@@ -6989,7 +7022,7 @@ body.dark-mode .resume-gate-actions .resume-btn.secondary:hover {
           }
           showToast('Message sent. Thank you!', true);
         } catch (err) {
-          const msg = err.message || 'Something went wrong. Try emailing ' + CONTACT_INBOX + '.';
+          const msg = err.message || ('Something went wrong. Email ' + CONTACT_INBOX + ' directly.');
           if (statusEl) { statusEl.textContent = msg; statusEl.className = 'form-status error'; }
           showToast(msg, false);
         } finally {

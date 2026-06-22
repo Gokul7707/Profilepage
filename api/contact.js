@@ -1,5 +1,3 @@
-const nodemailer = require('nodemailer');
-
 const CONTACT_INBOX = process.env.CONTACT_EMAIL || 'gokulsrinivasan2020@gmail.com';
 
 function validatePayload(body) {
@@ -49,40 +47,26 @@ async function readJsonBody(req) {
   });
 }
 
-async function sendViaFormSubmit({ name, email, message }, req) {
-  const origin = req.headers.origin
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://profilepage-ashen-beta.vercel.app');
-  const referer = req.headers.referer || `${origin}/hello.html`;
+async function sendViaWeb3Forms({ name, email, message }) {
+  const accessKey = process.env.WEB3FORMS_ACCESS_KEY || '120a3271-7ed1-4627-a41b-c71a66fcb011';
 
-  const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(CONTACT_INBOX)}`, {
+  const res = await fetch('https://api.web3forms.com/submit', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      Origin: origin,
-      Referer: referer,
-    },
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
+      access_key: accessKey,
       name,
       email,
+      replyto: email,
+      subject: `Portfolio message from ${name}`,
       message,
-      _subject: `Portfolio message from ${name}`,
-      _replyto: email,
-      _template: 'table',
-      _captcha: 'false',
+      botcheck: false,
     }),
   });
 
   const data = await res.json().catch(() => ({}));
-  const ok = data.success === true || data.success === 'true';
-  if (!ok) {
-    const note = data.message || 'Could not send message.';
-    if (/activation/i.test(note)) {
-      return {
-        error: `FormSubmit needs activation. Open ${CONTACT_INBOX} and click the Activate Form link, then try again.`,
-      };
-    }
-    return { error: note };
+  if (!res.ok || data.success !== true) {
+    return { error: data.message || 'Web3Forms request failed.' };
   }
 
   return { success: true, message: 'Thanks! Your message was received.', emailed: true };
@@ -113,45 +97,8 @@ module.exports = async (req, res) => {
     return res.status(400).json({ success: false, message: parsed.error });
   }
 
-  const { name, email, message } = parsed;
-  const smtpUser = process.env.SMTP_USER || '';
-  const smtpPass = (process.env.SMTP_PASSWORD || '').replace(/\s/g, '');
-  const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const smtpPort = Number(process.env.SMTP_PORT || 587);
-
-  if (smtpUser && smtpPass) {
-    try {
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: false,
-        auth: { user: smtpUser, pass: smtpPass },
-      });
-
-      await transporter.sendMail({
-        from: smtpUser,
-        to: CONTACT_INBOX,
-        replyTo: email,
-        subject: `Portfolio message from ${name}`,
-        text: `New message from your portfolio\n\nName: ${name}\nEmail: ${email}\nTime: ${new Date().toISOString()}\n\nMessage:\n${message}\n`,
-      });
-
-      return res.status(200).json({
-        success: true,
-        message: 'Thanks! Your message was received.',
-        emailed: true,
-      });
-    } catch (err) {
-      return res.status(500).json({
-        success: false,
-        message: err.message || 'Email send failed.',
-        emailed: false,
-      });
-    }
-  }
-
   try {
-    const result = await sendViaFormSubmit({ name, email, message }, req);
+    const result = await sendViaWeb3Forms(parsed);
     if (result.error) {
       return res.status(503).json({ success: false, message: result.error, emailed: false });
     }
