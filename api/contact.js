@@ -1,5 +1,7 @@
 const nodemailer = require('nodemailer');
 
+const CONTACT_INBOX = process.env.CONTACT_EMAIL || 'gokulsrinivasan2020@gmail.com';
+
 function validatePayload(body) {
   const name = String(body?.name || '').trim();
   const email = String(body?.email || '').trim();
@@ -47,6 +49,45 @@ async function readJsonBody(req) {
   });
 }
 
+async function sendViaFormSubmit({ name, email, message }, req) {
+  const origin = req.headers.origin
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://profilepage-ashen-beta.vercel.app');
+  const referer = req.headers.referer || `${origin}/hello.html`;
+
+  const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(CONTACT_INBOX)}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Origin: origin,
+      Referer: referer,
+    },
+    body: JSON.stringify({
+      name,
+      email,
+      message,
+      _subject: `Portfolio message from ${name}`,
+      _replyto: email,
+      _template: 'table',
+      _captcha: 'false',
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  const ok = data.success === true || data.success === 'true';
+  if (!ok) {
+    const note = data.message || 'Could not send message.';
+    if (/activation/i.test(note)) {
+      return {
+        error: `FormSubmit needs activation. Open ${CONTACT_INBOX} and click the Activate Form link, then try again.`,
+      };
+    }
+    return { error: note };
+  }
+
+  return { success: true, message: 'Thanks! Your message was received.', emailed: true };
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
 
@@ -75,44 +116,50 @@ module.exports = async (req, res) => {
   const { name, email, message } = parsed;
   const smtpUser = process.env.SMTP_USER || '';
   const smtpPass = (process.env.SMTP_PASSWORD || '').replace(/\s/g, '');
-  const contactEmail = process.env.CONTACT_EMAIL || smtpUser;
   const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
   const smtpPort = Number(process.env.SMTP_PORT || 587);
 
-  if (!smtpHost || !smtpUser || !smtpPass || !contactEmail) {
-    return res.status(503).json({
-      success: false,
-      message: 'Email service is not configured yet. Please try again later or email gokulsrinivasan2020@gmail.com directly.',
-      emailed: false,
-      email_note: 'Add SMTP_USER and SMTP_PASSWORD in Vercel environment variables.',
-    });
+  if (smtpUser && smtpPass) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: false,
+        auth: { user: smtpUser, pass: smtpPass },
+      });
+
+      await transporter.sendMail({
+        from: smtpUser,
+        to: CONTACT_INBOX,
+        replyTo: email,
+        subject: `Portfolio message from ${name}`,
+        text: `New message from your portfolio\n\nName: ${name}\nEmail: ${email}\nTime: ${new Date().toISOString()}\n\nMessage:\n${message}\n`,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Thanks! Your message was received.',
+        emailed: true,
+      });
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: err.message || 'Email send failed.',
+        emailed: false,
+      });
+    }
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: false,
-      auth: { user: smtpUser, pass: smtpPass },
-    });
-
-    await transporter.sendMail({
-      from: smtpUser,
-      to: contactEmail,
-      replyTo: email,
-      subject: `Portfolio message from ${name}`,
-      text: `New message from your portfolio\n\nName: ${name}\nEmail: ${email}\nTime: ${new Date().toISOString()}\n\nMessage:\n${message}\n`,
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: 'Thanks! Your message was received.',
-      emailed: true,
-    });
+    const result = await sendViaFormSubmit({ name, email, message }, req);
+    if (result.error) {
+      return res.status(503).json({ success: false, message: result.error, emailed: false });
+    }
+    return res.status(200).json(result);
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: err.message || 'Email send failed. Try again or email gokulsrinivasan2020@gmail.com directly.',
+      message: err.message || 'Could not send message.',
       emailed: false,
     });
   }

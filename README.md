@@ -24,7 +24,7 @@ Personal portfolio showcasing projects, skills, journey, and contact.
 | `SMTP_USER` | your Gmail address |
 | `SMTP_PASSWORD` | Gmail App Password (16 chars, no spaces) |
 
-The contact form will not send email until SMTP variables are set on Vercel.
+The contact form uses [FormSubmit](https://formsubmit.co/) on live sites (no SMTP required). On the **first** submission, FormSubmit emails `gokulsrinivasan2020@gmail.com` an **Activate Form** link — click it once, then every visitor can send messages. Optional: set SMTP env vars on Vercel to send via Gmail instead.
 
 ## Local development
 
